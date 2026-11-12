@@ -8,7 +8,6 @@
 <meta http-equiv="Expires" content="0">
 
 <title>حاسبة الكهرباء والماء</title>
-<link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -43,7 +42,6 @@ body { font-family: Tahoma, Arial; background: var(--bg-body); padding: 15px; ma
 h2 { text-align: center; color: #0f766e; margin-bottom: 10px; }
 [data-theme="dark"] h2 { color: #38ef7d; }
 
-/* زر الوضع الليلي (يبدأ بالشمس) */
 .theme-toggle {
     position: absolute; top: 15px; left: 15px;
     background: var(--bg-tab); border: 1px solid var(--border-color);
@@ -127,35 +125,42 @@ input.input-error { border: 2px solid #ef4444 !important; background-color: #ffe
         <button class="tab-btn" onclick="openTab('water')" id="btn-water">💧 الماء</button>
     </div>
 
+    <!-- تبويب الكهرباء -->
     <div id="elec" class="tab-content active">
+        <label>نوع القطاع (التعريفة)</label>
+        <select id="e_sector" onchange="updateElecBreaker(); resetOnChange('e')">
+            <option value="residential">سكني</option>
+            <option value="commercial">تجاري / تعليمي / صحي أهلي</option>
+            <option value="industrial">صناعي</option>
+            <option value="government">حكومي</option>
+        </select>
+
         <label>الاستهلاك الشهري (ك.و.س)</label>
         <input type="number" id="e_usage" placeholder="مثال: 500" oninput="clearError('e_usage', 'e_error'); resetOnChange('e')">
         <div id="e_error" class="error-msg">الرجاء إدخال استهلاك الكهرباء أولاً!</div>
         
-        <label>سعة القاطع</label>
-        <select id="e_breaker" onchange="resetOnChange('e')">
-          <option value="70">20-99 أمبير (70 ريال)</option>
-          <option value="80">100-199 أمبير (80 ريال)</option>
-          <option value="90">200-299 أمبير (90 ريال)</option>
-          <option value="100">300+ أمبير (100 ريال)</option>
-        </select>
+        <label>سعة القاطع / الرسوم الثابتة</label>
+        <select id="e_breaker" onchange="resetOnChange('e')"></select>
         
         <button class="btn-calc" onclick="calcElec()">احسب الكهرباء</button>
         <div id="e_result" class="result"></div>
         <div id="e_compare" class="report-box"></div>
     </div>
 
+    <!-- تبويب الماء -->
     <div id="water" class="tab-content">
+        <label>نوع القطاع (تعريفة الماء)</label>
+        <select id="w_sector" onchange="updateWaterMeter(); resetOnChange('w')">
+            <option value="residential">سكني</option>
+            <option value="commercial">تجاري / صناعي</option>
+            <option value="government">حكومي</option>
+        </select>
+
         <label>استهلاك الماء (متر مكعب) - اختياري</label>
         <input type="number" id="w_usage" placeholder="إذا تركته فارغاً يُحسب صفر" oninput="resetOnChange('w')">
         
-        <label>قطر عداد الماء</label>
-        <select id="w_meter" onchange="resetOnChange('w')">
-          <option value="30">20 ملم أو أقل (30 ريال)</option>
-          <option value="60">21-40 ملم (60 ريال)</option>
-          <option value="90">41-65 ملم (90 ريال)</option>
-          <option value="120">66-100 ملم (120 ريال)</option>
-        </select>
+        <label>قطر عداد الماء / الرسوم الثابتة</label>
+        <select id="w_meter" onchange="resetOnChange('w')"></select>
         
         <button class="btn-calc" onclick="calcWater()">احسب الماء</button>
         <div id="w_result" class="result"></div>
@@ -165,22 +170,20 @@ input.input-error { border: 2px solid #ef4444 !important; background-color: #ffe
 </div>
 
 <script>
-// ------ كود الوضع الليلي (معكوس زي ما طلبت) ------
 function toggleTheme() {
     let body = document.body;
     let btn = document.getElementById("themeToggle");
     if (body.getAttribute("data-theme") === "dark") {
         body.removeAttribute("data-theme");
-        btn.textContent = "☀️"; // شمس في الوضع النهاري
+        btn.textContent = "☀️";
         localStorage.setItem("theme", "light");
     } else {
         body.setAttribute("data-theme", "dark");
-        btn.textContent = "🌙"; // قمر في الوضع الليلي
+        btn.textContent = "🌙";
         localStorage.setItem("theme", "dark");
     }
 }
 
-// تذكر اختيار المستخدم عند فتح الصفحة
 window.onload = function() {
     let savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark") {
@@ -189,10 +192,38 @@ window.onload = function() {
     } else {
         document.getElementById("themeToggle").textContent = "☀️";
     }
+    updateElecBreaker();
+    updateWaterMeter();
 };
 
+function updateElecBreaker() {
+    let sector = document.getElementById("e_sector").value;
+    let bSelect = document.getElementById("e_breaker");
+    
+    if (sector === "residential") {
+        bSelect.innerHTML = `<option value="70">20-99 أمبير (70 ريال)</option><option value="80">100-199 أمبير (80 ريال)</option><option value="90">200-299 أمبير (90 ريال)</option><option value="100">300+ أمبير (100 ريال)</option>`;
+    } else if (sector === "commercial") {
+        bSelect.innerHTML = `<option value="350">20-99 أمبير (350 ريال)</option><option value="500">100-199 أمبير (500 ريال)</option><option value="700">200-299 أمبير (700 ريال)</option><option value="900">300+ أمبير (900 ريال)</option>`;
+    } else if (sector === "industrial") {
+        bSelect.innerHTML = `<option value="150">رسوم ثابتة صناعية (150 ريال)</option><option value="300">رسوم ثابتة صناعية (300 ريال)</option>`;
+    } else if (sector === "government") {
+        bSelect.innerHTML = `<option value="400">رسوم ثابتة حكومية (400 ريال)</option><option value="600">رسوم ثابتة حكومية (600 ريال)</option>`;
+    }
+}
 
-// ------ باقي أكواد الحاسبة ------
+function updateWaterMeter() {
+    let sector = document.getElementById("w_sector").value;
+    let mSelect = document.getElementById("w_meter");
+    
+    if (sector === "residential") {
+        mSelect.innerHTML = `<option value="30">20 ملم أو أقل (30 ريال)</option><option value="60">21-40 ملم (60 ريال)</option><option value="90">41-65 ملم (90 ريال)</option><option value="120">66-100 ملم (120 ريال)</option>`;
+    } else if (sector === "commercial") {
+        mSelect.innerHTML = `<option value="60">20-40 ملم (60 ريال)</option><option value="90">41-65 ملم (90 ريال)</option><option value="120">66-100 ملم (120 ريال)</option><option value="225">100+ ملم (225 ريال)</option>`;
+    } else if (sector === "government") {
+        mSelect.innerHTML = `<option value="1500">حكومي (رسوم ثابتة 1500 ريال)</option>`;
+    }
+}
+
 let totals = { elec: { old: 0, new: 0 }, water: { old: 0, new: 0 } };
 let calculated = { elec: false, water: false };
 
@@ -256,11 +287,29 @@ function checkTotals() {
 }
 
 function calcElec() {
+    let sector = document.getElementById("e_sector").value;
     let usage = Number(document.getElementById("e_usage").value);
     let fixed = Number(document.getElementById("e_breaker").value);
+    
     if(!usage || usage <= 0){ showError('e_usage', 'e_error'); return; }
     
-    let energyCost = (Math.min(usage, 6000) * 0.21) + (Math.max(usage - 6000, 0) * 0.33);
+    let energyCost = 0;
+    let sectorName = "";
+
+    if (sector === "residential") {
+        energyCost = (Math.min(usage, 6000) * 0.21) + (Math.max(usage - 6000, 0) * 0.33);
+        sectorName = "سكني";
+    } else if (sector === "commercial") {
+        energyCost = (Math.min(usage, 6000) * 0.25) + (Math.max(usage - 6000, 0) * 0.35);
+        sectorName = "تجاري / تعليمي / صحي أهلي";
+    } else if (sector === "industrial") {
+        energyCost = usage * 0.23;
+        sectorName = "صناعي";
+    } else if (sector === "government") {
+        energyCost = usage * 0.35;
+        sectorName = "حكومي";
+    }
+
     let subtotal = energyCost + fixed;
     let vat = subtotal * 0.15;
     totals.elec.new = subtotal + vat;
@@ -268,6 +317,7 @@ function calcElec() {
 
     let resultDiv = document.getElementById("e_result");
     resultDiv.innerHTML = `
+    <b>القطاع:</b> ${sectorName}<br>
     <b>الاستهلاك:</b> ${energyCost.toFixed(2)} ريال<br>
     <b>الثابتة:</b> ${fixed.toFixed(2)} ريال<br>
     <b>الضريبة (15%):</b> ${vat.toFixed(2)} ريال<br>
@@ -276,31 +326,51 @@ function calcElec() {
     resultDiv.style.display = "block";
     
     let compareDiv = document.getElementById("e_compare");
-    let oldEnergyCost = (Math.min(usage, 6000) * 0.18) + (Math.max(usage - 6000, 0) * 0.30);
-    totals.elec.old = (oldEnergyCost + 10) * 1.15;
-    
-    let diff = Math.abs(totals.elec.new - totals.elec.old);
-    let pct = (diff / totals.elec.old) * 100;
-    let status = totals.elec.new > totals.elec.old ? "زيادة" : "انخفاض";
-    
-    compareDiv.innerHTML = `
-    <b>📝 تقرير المقارنة (كهرباء):</b><br>
-    • الفاتورة القديمة: <b>${totals.elec.old.toFixed(2)} ريال</b><br>
-    • الفاتورة الجديدة: <b>${totals.elec.new.toFixed(2)} ريال</b><br>
-    • الفرق: <b>${diff.toFixed(2)} ريال</b> (${status})<br>
-    • نسبة التغير: <b>${pct.toFixed(1)}%</b>`;
-    compareDiv.style.display = "block";
+    if (sector === "residential") {
+        let oldEnergyCost = (Math.min(usage, 6000) * 0.18) + (Math.max(usage - 6000, 0) * 0.30);
+        totals.elec.old = (oldEnergyCost + 10) * 1.15;
+        
+        let diff = Math.abs(totals.elec.new - totals.elec.old);
+        let pct = (diff / totals.elec.old) * 100;
+        let status = totals.elec.new > totals.elec.old ? "زيادة" : "انخفاض";
+        
+        compareDiv.innerHTML = `
+        <b>📝 تقرير المقارنة (كهرباء سكني):</b><br>
+        • الفاتورة القديمة: <b>${totals.elec.old.toFixed(2)} ريال</b><br>
+        • الفاتورة الجديدة: <b>${totals.elec.new.toFixed(2)} ريال</b><br>
+        • الفرق: <b>${diff.toFixed(2)} ريال</b> (${status})<br>
+        • نسبة التغير: <b>${pct.toFixed(1)}%</b>`;
+        compareDiv.style.display = "block";
+    } else {
+        totals.elec.old = totals.elec.new;
+        compareDiv.style.display = "none";
+    }
     
     scrollToElement(resultDiv);
     checkTotals();
 }
 
 function calcWater() {
+    let sector = document.getElementById("w_sector").value;
     let usage = Number(document.getElementById("w_usage").value) || 0;
     let fixed = Number(document.getElementById("w_meter").value);
+    let sectorName = "";
 
-    let t1 = Math.min(usage, 15), t2 = Math.max(Math.min(usage - 15, 15), 0), t3 = Math.max(Math.min(usage - 30, 15), 0), t4 = Math.max(usage - 45, 0);
-    let waterCost = (t1 * 1.5) + (t2 * 3) + (t3 * 6) + (t4 * 9);
+    let waterCost = 0;
+    let oldWaterCost = 0;
+
+    if (sector === "residential") {
+        sectorName = "سكني";
+        let t1 = Math.min(usage, 15), t2 = Math.max(Math.min(usage - 15, 15), 0), t3 = Math.max(Math.min(usage - 30, 15), 0), t4 = Math.max(usage - 45, 0);
+        waterCost = (t1 * 1.5) + (t2 * 3) + (t3 * 6) + (t4 * 9);
+        oldWaterCost = (t1 * 0.15) + (t2 * 1.5) + (t3 * 6) + (t4 * 9);
+    } else if (sector === "commercial") {
+        sectorName = "تجاري / صناعي";
+        waterCost = usage * 12;
+    } else if (sector === "government") {
+        sectorName = "حكومي";
+        waterCost = usage * 15;
+    }
     
     let subtotal = waterCost + fixed;
     let vat = subtotal * 0.15;
@@ -309,7 +379,8 @@ function calcWater() {
 
     let resultDiv = document.getElementById("w_result");
     resultDiv.innerHTML = `
-    <b>الماء:</b> ${waterCost.toFixed(2)} ريال<br>
+    <b>القطاع:</b> ${sectorName}<br>
+    <b>الماء والصرف:</b> ${waterCost.toFixed(2)} ريال<br>
     <b>الثابتة:</b> ${fixed.toFixed(2)} ريال<br>
     <b>الضريبة (15%):</b> ${vat.toFixed(2)} ريال<br>
     <hr style="border:0; border-top:1px solid #ddd; margin:10px 0;">
@@ -317,20 +388,24 @@ function calcWater() {
     resultDiv.style.display = "block";
     
     let compareDiv = document.getElementById("w_compare");
-    let oldWaterCost = (t1 * 0.15) + (t2 * 1.5) + (t3 * 6) + (t4 * 9);
-    totals.water.old = (oldWaterCost + 10) * 1.15;
-    
-    let diff = Math.abs(totals.water.new - totals.water.old);
-    let pct = (diff / totals.water.old) * 100;
-    let status = totals.water.new > totals.water.old ? "زيادة" : "انخفاض";
+    if (sector === "residential") {
+        totals.water.old = (oldWaterCost + 10) * 1.15;
+        
+        let diff = Math.abs(totals.water.new - totals.water.old);
+        let pct = (diff / totals.water.old) * 100;
+        let status = totals.water.new > totals.water.old ? "زيادة" : "انخفاض";
 
-    compareDiv.innerHTML = `
-    <b>📝 تقرير المقارنة (ماء):</b><br>
-    • الفاتورة القديمة: <b>${totals.water.old.toFixed(2)} ريال</b><br>
-    • الفاتورة الجديدة: <b>${totals.water.new.toFixed(2)} ريال</b><br>
-    • الفرق: <b>${diff.toFixed(2)} ريال</b> (${status})<br>
-    • نسبة التغير: <b>${pct.toFixed(1)}%</b>`;
-    compareDiv.style.display = "block";
+        compareDiv.innerHTML = `
+        <b>📝 تقرير المقارنة (ماء سكني):</b><br>
+        • الفاتورة القديمة: <b>${totals.water.old.toFixed(2)} ريال</b><br>
+        • الفاتورة الجديدة: <b>${totals.water.new.toFixed(2)} ريال</b><br>
+        • الفرق: <b>${diff.toFixed(2)} ريال</b> (${status})<br>
+        • نسبة التغير: <b>${pct.toFixed(1)}%</b>`;
+        compareDiv.style.display = "block";
+    } else {
+        totals.water.old = totals.water.new;
+        compareDiv.style.display = "none";
+    }
 
     scrollToElement(resultDiv);
     checkTotals();
