@@ -170,6 +170,7 @@ input.input-error { border: 2px solid #ef4444 !important; background-color: #ffe
 </div>
 
 <script>
+// ------ كود الوضع الليلي ------
 function toggleTheme() {
     let body = document.body;
     let btn = document.getElementById("themeToggle");
@@ -196,18 +197,24 @@ window.onload = function() {
     updateWaterMeter();
 };
 
+// ------ دوال القطاعات ------
 function updateElecBreaker() {
     let sector = document.getElementById("e_sector").value;
     let bSelect = document.getElementById("e_breaker");
     
     if (sector === "residential") {
-        bSelect.innerHTML = `<option value="70">20-99 أمبير (70 ريال)</option><option value="80">100-199 أمبير (80 ريال)</option><option value="90">200-299 أمبير (90 ريال)</option><option value="100">300+ أمبير (100 ريال)</option>`;
-    } else if (sector === "commercial") {
-        bSelect.innerHTML = `<option value="350">20-99 أمبير (350 ريال)</option><option value="500">100-199 أمبير (500 ريال)</option><option value="700">200-299 أمبير (700 ريال)</option><option value="900">300+ أمبير (900 ريال)</option>`;
-    } else if (sector === "industrial") {
-        bSelect.innerHTML = `<option value="150">رسوم ثابتة صناعية (150 ريال)</option><option value="300">رسوم ثابتة صناعية (300 ريال)</option>`;
-    } else if (sector === "government") {
-        bSelect.innerHTML = `<option value="400">رسوم ثابتة حكومية (400 ريال)</option><option value="600">رسوم ثابتة حكومية (600 ريال)</option>`;
+        bSelect.innerHTML = `
+            <option value="70">20-99 أمبير (70 ريال)</option>
+            <option value="80">100-199 أمبير (80 ريال)</option>
+            <option value="90">200-299 أمبير (90 ريال)</option>
+            <option value="100">300+ أمبير (100 ريال)</option>`;
+    } else if (sector === "commercial" || sector === "industrial" || sector === "government") {
+        // توحيد الرسوم الثابتة للتجاري والصناعي والحكومي
+        bSelect.innerHTML = `
+            <option value="350">20-99 أمبير (350 ريال)</option>
+            <option value="500">100-199 أمبير (500 ريال)</option>
+            <option value="700">200-299 أمبير (700 ريال)</option>
+            <option value="900">300+ أمبير (900 ريال)</option>`;
     }
 }
 
@@ -216,14 +223,24 @@ function updateWaterMeter() {
     let mSelect = document.getElementById("w_meter");
     
     if (sector === "residential") {
-        mSelect.innerHTML = `<option value="30">20 ملم أو أقل (30 ريال)</option><option value="60">21-40 ملم (60 ريال)</option><option value="90">41-65 ملم (90 ريال)</option><option value="120">66-100 ملم (120 ريال)</option>`;
+        mSelect.innerHTML = `
+            <option value="30">20 ملم أو أقل (30 ريال)</option>
+            <option value="60">21-40 ملم (60 ريال)</option>
+            <option value="90">41-65 ملم (90 ريال)</option>
+            <option value="120">66-100 ملم (120 ريال)</option>`;
     } else if (sector === "commercial") {
-        mSelect.innerHTML = `<option value="60">20-40 ملم (60 ريال)</option><option value="90">41-65 ملم (90 ريال)</option><option value="120">66-100 ملم (120 ريال)</option><option value="225">100+ ملم (225 ريال)</option>`;
+        mSelect.innerHTML = `
+            <option value="60">20-40 ملم (60 ريال)</option>
+            <option value="90">41-65 ملم (90 ريال)</option>
+            <option value="120">66-100 ملم (120 ريال)</option>
+            <option value="225">100+ ملم (225 ريال)</option>`;
     } else if (sector === "government") {
-        mSelect.innerHTML = `<option value="1500">حكومي (رسوم ثابتة 1500 ريال)</option>`;
+        mSelect.innerHTML = `
+            <option value="1500">حكومي (رسوم ثابتة 1500 ريال)</option>`;
     }
 }
 
+// ------ باقي أكواد الحاسبة ------
 let totals = { elec: { old: 0, new: 0 }, water: { old: 0, new: 0 } };
 let calculated = { elec: false, water: false };
 
@@ -286,6 +303,7 @@ function checkTotals() {
     else { btn.disabled = true; btn.classList.remove("active"); }
 }
 
+// حساب الكهرباء
 function calcElec() {
     let sector = document.getElementById("e_sector").value;
     let usage = Number(document.getElementById("e_usage").value);
@@ -350,6 +368,7 @@ function calcElec() {
     checkTotals();
 }
 
+// حساب الماء (مع فصل الماء عن الصرف)
 function calcWater() {
     let sector = document.getElementById("w_sector").value;
     let usage = Number(document.getElementById("w_usage").value) || 0;
@@ -357,22 +376,29 @@ function calcWater() {
     let sectorName = "";
 
     let waterCost = 0;
+    let sewageCost = 0;
     let oldWaterCost = 0;
+    let oldSewageCost = 0;
 
     if (sector === "residential") {
         sectorName = "سكني";
         let t1 = Math.min(usage, 15), t2 = Math.max(Math.min(usage - 15, 15), 0), t3 = Math.max(Math.min(usage - 30, 15), 0), t4 = Math.max(usage - 45, 0);
-        waterCost = (t1 * 1.5) + (t2 * 3) + (t3 * 6) + (t4 * 9);
-        oldWaterCost = (t1 * 0.15) + (t2 * 1.5) + (t3 * 6) + (t4 * 9);
+        waterCost = (t1 * 1) + (t2 * 2) + (t3 * 4) + (t4 * 6);
+        sewageCost = waterCost * 0.5; 
+        
+        oldWaterCost = (t1 * 0.1) + (t2 * 1) + (t3 * 4) + (t4 * 6);
+        oldSewageCost = oldWaterCost * 0.5;
     } else if (sector === "commercial") {
         sectorName = "تجاري / صناعي";
-        waterCost = usage * 12;
+        waterCost = usage * 8;
+        sewageCost = usage * 4;
     } else if (sector === "government") {
         sectorName = "حكومي";
-        waterCost = usage * 15;
+        waterCost = usage * 10;
+        sewageCost = usage * 5;
     }
     
-    let subtotal = waterCost + fixed;
+    let subtotal = waterCost + sewageCost + fixed;
     let vat = subtotal * 0.15;
     totals.water.new = subtotal + vat;
     calculated.water = true;
@@ -380,7 +406,8 @@ function calcWater() {
     let resultDiv = document.getElementById("w_result");
     resultDiv.innerHTML = `
     <b>القطاع:</b> ${sectorName}<br>
-    <b>الماء والصرف:</b> ${waterCost.toFixed(2)} ريال<br>
+    <b>قيمة الماء:</b> ${waterCost.toFixed(2)} ريال<br>
+    <b>الصرف الصحي:</b> ${sewageCost.toFixed(2)} ريال<br>
     <b>الثابتة:</b> ${fixed.toFixed(2)} ريال<br>
     <b>الضريبة (15%):</b> ${vat.toFixed(2)} ريال<br>
     <hr style="border:0; border-top:1px solid #ddd; margin:10px 0;">
@@ -389,7 +416,7 @@ function calcWater() {
     
     let compareDiv = document.getElementById("w_compare");
     if (sector === "residential") {
-        totals.water.old = (oldWaterCost + 10) * 1.15;
+        totals.water.old = (oldWaterCost + oldSewageCost + 10) * 1.15;
         
         let diff = Math.abs(totals.water.new - totals.water.old);
         let pct = (diff / totals.water.old) * 100;
